@@ -7,26 +7,157 @@ const data=JSON.parse(fs.readFileSync(path.join(root,'src/catalog.json'),'utf8')
 const {categories,calculators}=data;
 const dist=path.join(root,'dist');
 fs.rmSync(dist,{recursive:true,force:true});fs.mkdirSync(dist,{recursive:true});
-fs.cpSync(path.join(root,'public'),path.join(dist,'assets'),{recursive:true});
-const SITE_URL=(process.env.SITE_URL||'').replace(/\/$/,'');
+fs.cpSync(path.join(root,'public'),path.join(dist,'assets'),{recursive:true,filter:source=>path.basename(source)!=='.gitkeep'});
+const SITE_URL=(process.env.SITE_URL||'https://agrocalculator.pp.ua').replace(/\/$/,'');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const json=s=>JSON.stringify(s).replace(/</g,'\\u003c').replace(/>/g,'\\u003e').replace(/&/g,'\\u0026');
-const href=s=>s.startsWith('/')?s:s;
-const fmtDate='';
+const SITE_BRAND='Agro Calculator';
 function header(active=''){
-  return `<a class="skip-link" href="#main">Перейти до основного вмісту</a><header class="site-header"><div class="container header-inner"><a class="brand" href="/" aria-label="Розрахуй — головна"><span class="brand-mark">÷</span><span>розрахуй</span></a><button class="menu-toggle" type="button" aria-label="Відкрити меню" aria-expanded="false" data-menu-toggle>☰</button><nav class="main-nav" data-main-nav aria-label="Головна навігація"><a href="/calculators/" ${active==='all'?'aria-current="page"':''}>Усі калькулятори</a><a href="/category/finance/">Фінанси</a><a href="/category/health/">Здоров’я</a><a href="/category/math/">Математика</a><a href="/about/" ${active==='about'?'aria-current="page"':''}>Про сайт</a></nav><div class="header-actions"><a class="button button-secondary" href="/calculators/">Знайти калькулятор <span aria-hidden="true">↗</span></a></div></div></header>`;
+ return `<a class="skip-link" href="#main">Перейти до основного вмісту</a><header class="site-header"><div class="container header-inner"><a class="brand" href="/" aria-label="Agro Calculator — головна"><span class="brand-mark">A</span><span>Agro Calculator</span></a><button class="menu-toggle" type="button" aria-label="Відкрити меню" aria-expanded="false" data-menu-toggle>☰</button><nav class="main-nav" data-main-nav aria-label="Головна навігація"><a href="/calculators/" ${active==='all'?'aria-current="page"':''}>Усі калькулятори</a><a href="/category/finance/">Фінанси</a><a href="/category/health/">Здоров’я</a><a href="/category/math/">Математика</a><a href="/articles/" ${active==='articles'?'aria-current="page"':''}>Статті</a><a href="/about/" ${active==='about'?'aria-current="page"':''}>Про сайт</a></nav><div class="header-actions"><a class="button button-secondary" href="/calculators/">Знайти калькулятор <span aria-hidden="true">↗</span></a></div></div></header>`;
 }
 function footer(){
  const cats=Object.entries(categories);
- return `<footer class="site-footer"><div class="container"><div class="footer-grid"><div><a class="footer-brand" href="/">÷ розрахуй<span>.</span></a><p class="footer-about">Безкоштовні онлайн-калькулятори українською для фінансів, здоров’я, математики, ремонту та щоденних справ. Розрахунки виконуються у вашому браузері.</p></div><div class="footer-col"><h3>Категорії</h3>${cats.slice(0,4).map(([k,c])=>`<a href="/category/${k}/">${esc(c.name)}</a>`).join('')}</div><div class="footer-col"><h3>Інструменти</h3>${cats.slice(4).map(([k,c])=>`<a href="/category/${k}/">${esc(c.name)}</a>`).join('')}<a href="/calculators/">Усі калькулятори</a></div><div class="footer-col"><h3>Проєкт</h3><a href="/about/">Про сайт</a><a href="/privacy/">Конфіденційність</a></div></div><div class="footer-bottom"><span>© <span data-year></span> Розрахуй. Безкоштовні розрахунки українською.</span><span>Створено й підтримується незалежно.</span></div></div></footer>`;
+ return `<footer class="site-footer"><div class="container"><div class="footer-grid"><div><a class="footer-brand" href="/">Agro Calculator<span>.</span></a><p class="footer-about">Безкоштовні онлайн-калькулятори українською для фінансів, здоров’я, математики, ремонту та щоденних справ. Розрахунки виконуються у вашому браузері.</p></div><div class="footer-col"><h3>Категорії</h3>${cats.slice(0,4).map(([k,c])=>`<a href="/category/${k}/">${esc(c.name)}</a>`).join('')}</div><div class="footer-col"><h3>Інструменти</h3>${cats.slice(4).map(([k,c])=>`<a href="/category/${k}/">${esc(c.name)}</a>`).join('')}<a href="/calculators/">Усі калькулятори</a></div><div class="footer-col"><h3>Проєкт</h3><a href="/articles/">Статті</a><a href="/about/">Про сайт</a><a href="/privacy/">Конфіденційність</a></div></div><div class="footer-bottom"><span>© <span data-year></span> Agro Calculator. Безкоштовні розрахунки українською.</span><span>Незалежний інформаційний проєкт.</span></div></div></footer>`;
 }
-function base(title,description,body,{canonical='',keywords=[],active='',extraHead=''}={}){
- const canon=canonical&&SITE_URL?`<link rel="canonical" href="${SITE_URL}${canonical}">`:'';
- const og=SITE_URL&&canonical?`<meta property="og:url" content="${SITE_URL}${canonical}">` : '';
+function base(title,description,body,{canonical='',canonicalUrl='',keywords=[],active='',extraHead='',robots='index,follow,max-image-preview:large',ogTitle='',ogDescription='',ogImage='',ogUrl='',ogSiteName='',ogLocale='uk_UA',ogType='website',twitterCard='',twitterTitle='',twitterDescription='',twitterImage='',twitterSite='',twitterCreator=''}={}){
+ const canonicalHref=canonicalUrl||(canonical?`${SITE_URL}${canonical}`:'');
+ const canon=canonicalHref?`<link rel="canonical" href="${esc(canonicalHref)}">`:'';
+ const ogUrlTag=(ogUrl||canonicalHref)?`<meta property="og:url" content="${esc(ogUrl||canonicalHref)}">`:'';
  const kw=keywords.length?`<meta name="keywords" content="${esc(keywords.join(', '))}">`:'';
- return `<!doctype html><html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><meta name="theme-color" content="#176b54"><title>${esc(title)}</title><meta name="description" content="${esc(description)}"><meta name="robots" content="index,follow,max-image-preview:large"><meta property="og:locale" content="uk_UA"><meta property="og:site_name" content="Розрахуй"><meta property="og:type" content="website"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}">${og}${SITE_URL?`<meta property="og:image" content="${SITE_URL}/assets/social-card.svg"><meta name="twitter:card" content="summary_large_image">`:''}${canon}${kw}<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="manifest" href="/manifest.webmanifest"><link rel="stylesheet" href="/assets/site.css">${extraHead}</head><body>${header(active)}${body}${footer()}<script src="/assets/app.js" defer></script></body></html>`;
+ const image=ogImage||`${SITE_URL}/assets/social-card.svg`;
+ const twitterCardValue=twitterCard||((twitterImage||ogImage)?'summary_large_image':'summary');
+ return `<!doctype html><html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><meta name="theme-color" content="#176b54"><title>${esc(title)}</title><meta name="description" content="${esc(description)}"><meta name="robots" content="${esc(robots)}"><meta property="og:locale" content="${esc(ogLocale)}"><meta property="og:site_name" content="${esc(ogSiteName||SITE_BRAND)}"><meta property="og:type" content="${esc(ogType)}"><meta property="og:title" content="${esc(ogTitle||title)}"><meta property="og:description" content="${esc(ogDescription||description)}">${ogUrlTag}${image?`<meta property="og:image" content="${esc(image)}">`:''}<meta name="twitter:card" content="${esc(twitterCardValue)}"><meta name="twitter:title" content="${esc(twitterTitle||ogTitle||title)}"><meta name="twitter:description" content="${esc(twitterDescription||ogDescription||description)}">${(twitterImage||ogImage)?`<meta name="twitter:image" content="${esc(twitterImage||ogImage)}">`:''}${twitterSite?`<meta name="twitter:site" content="${esc(twitterSite)}">`:''}${twitterCreator?`<meta name="twitter:creator" content="${esc(twitterCreator)}">`:''}${canon}${kw}<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="manifest" href="/manifest.webmanifest"><link rel="stylesheet" href="/assets/site.css">${extraHead}</head><body>${header(active)}${body}${footer()}<script src="/assets/app.js" defer></script></body></html>`;
 }
 function writePage(url,html){const target=path.join(dist,url.replace(/^\//,''));const file=target.endsWith('.html')?target:path.join(target,'index.html');fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,html,'utf8');}
+
+function parseYamlValue(value){
+ const v=value.trim();
+ if(!v)return '';
+ if(v==='true')return true;
+ if(v==='false')return false;
+ if(v==='null'||v==='~')return null;
+ if(/^[-+]?\d+(?:\.\d+)?$/.test(v))return Number(v);
+ if(v.startsWith('"')&&v.endsWith('"')){try{return JSON.parse(v)}catch{return v.slice(1,-1)}}
+ if(v.startsWith("'")&&v.endsWith("'"))return v.slice(1,-1).replace(/''/g,"'");
+ if(v.startsWith('[')&&v.endsWith(']')){
+  const inner=v.slice(1,-1).trim(); if(!inner)return [];
+  return inner.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(parseYamlValue);
+ }
+ return v.replace(/\s+#.*$/,'').trim();
+}
+function parseFrontMatter(source,fileName){
+ const match=source.match(/^---\s*\r?\n([\s\S]*?)\r?\n---\s*(?:\r?\n|$)/);
+ if(!match)throw new Error(`Немає YAML front matter у статті ${fileName}`);
+ const lines=match[1].split(/\r?\n/), data={}; let section=null, arrayKey=null;
+ for(const [lineIndex,raw] of lines.entries()){
+  if(!raw.trim()||raw.trim().startsWith('#'))continue;
+  const indent=(raw.match(/^\s*/)||[''])[0].length; const line=raw.trim();
+  if(indent===0){
+   const m=line.match(/^([A-Za-z0-9_-]+):(?:\s*(.*))?$/); if(!m)continue;
+   const key=m[1], value=m[2]||''; arrayKey=null;
+   if(value===''){
+    const next=lines.slice(lineIndex+1).find(item=>item.trim()&&!item.trim().startsWith('#'))||'';
+    if(/^\s+-\s+/.test(next)){data[key]=[];section=null;arrayKey=key;}
+    else{data[key]={};section=key;}
+   }else{data[key]=parseYamlValue(value);section=null;}
+  }else if(indent>=2 && section){
+   if(line.startsWith('- ')){
+    if(!arrayKey)continue;
+    if(!Array.isArray(data[section][arrayKey]))data[section][arrayKey]=[];
+    data[section][arrayKey].push(parseYamlValue(line.slice(2)));
+   }else{
+    const m=line.match(/^([A-Za-z0-9_-]+):(?:\s*(.*))?$/); if(!m)continue;
+    const key=m[1], value=m[2]||'';
+    if(value===''){data[section][key]=[];arrayKey=key;}else{data[section][key]=parseYamlValue(value);arrayKey=null;}
+   }
+  }else if(indent>=2 && !section && line.startsWith('- ') && arrayKey && Array.isArray(data[arrayKey])){
+   data[arrayKey].push(parseYamlValue(line.slice(2)));
+  }
+ }
+ const body=source.slice(match[0].length).trim();
+ return {...data,body};
+}
+function slugify(value){return String(value||'').toLocaleLowerCase('uk').normalize('NFC').replace(/[^\p{L}\p{N}]+/gu,'-').replace(/^-|-$/g,'');}
+function safeContentUrl(value){
+ const url=String(value||'').trim();
+ if(/^https?:\/\//i.test(url)||url.startsWith('/'))return url;
+ return '';
+}
+function inlineMarkdown(value){
+ let out=esc(value);
+ out=out.replace(/!\[([^\]]*)\]\(([^\s)]+)(?:\s+\"([^\"]*)\")?\)/g,(full,alt,rawUrl,title)=>{const url=safeContentUrl(rawUrl);if(!url)return '';return `<img src=\"${esc(url)}\" alt=\"${esc(alt)}\" loading=\"lazy\"${title?` title=\"${esc(title)}\"`:''}>`;});
+ out=out.replace(/`([^`]+)`/g,'<code>$1</code>');
+ out=out.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+ out=out.replace(/\*([^*]+)\*/g,'<em>$1</em>');
+ out=out.replace(/\[([^\]]+)\]\(([^\s)]+)(?:\s+"([^"]*)")?\)/g,(full,label,rawUrl,title)=>{
+  const url=safeContentUrl(rawUrl); if(!url)return label;
+  const external=/^https?:\/\//i.test(url); return `<a href="${esc(url)}"${external?' target="_blank" rel="noopener noreferrer"':''}${title?` title="${esc(title)}"`:''}>${label}</a>`;
+ });
+ return out;
+}
+function renderMarkdown(markdown){
+ const lines=String(markdown||'').replace(/\r/g,'').split('\n'); let html='',paragraph=[],listType='';
+ const flushParagraph=()=>{if(paragraph.length){html+=`<p>${inlineMarkdown(paragraph.join(' '))}</p>`;paragraph=[];}};
+ const closeList=()=>{if(listType){html+=`</${listType}>`;listType='';}};
+ for(const raw of lines){
+  const line=raw.trim();
+  if(!line){flushParagraph();closeList();continue;}
+  const heading=line.match(/^(#{2,4})\s+(.+)$/);
+  if(heading){flushParagraph();closeList();const level=heading[1].length,text=heading[2],id=slugify(text);html+=`<h${level} id="${esc(id)}">${inlineMarkdown(text)}</h${level}>`;continue;}
+  if(/^---+$/.test(line)){flushParagraph();closeList();html+='<hr>';continue;}
+  const quote=line.match(/^>\s?(.*)$/);
+  if(quote){flushParagraph();closeList();html+=`<blockquote><p>${inlineMarkdown(quote[1])}</p></blockquote>`;continue;}
+  const bullet=line.match(/^[-*+]\s+(.+)$/),number=line.match(/^\d+[.)]\s+(.+)$/);
+  if(bullet||number){flushParagraph();const type=bullet?'ul':'ol';if(listType!==type){closeList();html+=`<${type}>`;listType=type;}html+=`<li>${inlineMarkdown((bullet||number)[1])}</li>`;continue;}
+  closeList();paragraph.push(line);
+ }
+ flushParagraph();closeList();return html;
+}
+function readArticles(){
+ const dir=path.join(root,'content','articles'); if(!fs.existsSync(dir))return [];
+ return fs.readdirSync(dir).filter(name=>name.endsWith('.md')&&!name.startsWith('_')).map(name=>{
+  const article=parseFrontMatter(fs.readFileSync(path.join(dir,name),'utf8'),name);
+  article.slug=article.slug||name.replace(/\.md$/,'');
+  article.url=`/articles/${article.slug}/`;
+  article.seo=article.seo&&typeof article.seo==='object'?article.seo:{};
+  article.tags=Array.isArray(article.tags)?article.tags:[];
+  article.published=article.published===true||article.published==='true';
+  return article;
+ }).filter(article=>article.published).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+}
+function articleSchema(article,canonicalUrl){
+ return {'@context':'https://schema.org','@type':article.seo.schemaType&&article.seo.schemaType!=='None'?article.seo.schemaType:'Article',headline:article.title,description:article.seo.description||article.excerpt||'',datePublished:article.date||undefined,dateModified:article.updatedAt||article.date||undefined,inLanguage:'uk',mainEntityOfPage:canonicalUrl||SITE_URL+article.url,author:{'@type':'Person',name:article.author||'Agro Calculator'},publisher:{'@type':'Organization',name:SITE_BRAND,url:SITE_URL},image:safeContentUrl(article.coverImage)?(article.coverImage.startsWith('http')?article.coverImage:SITE_URL+article.coverImage):undefined};
+}
+function renderArticle(article){
+ const seo=article.seo||{};
+ const url=article.url;
+ const canonicalUrl=seo.canonicalUrl||`${SITE_URL}${url}`;
+ const title=seo.title||`${article.title} | Agro Calculator`;
+ const description=seo.description||article.excerpt||`Читайте статтю «${article.title}» на Agro Calculator.`;
+ const robots=[seo.robotsIndex===false?'noindex':'index',seo.robotsFollow===false?'nofollow':'follow'];
+ if(seo.maxSnippet!==undefined&&seo.maxSnippet!==null&&seo.maxSnippet!==''&&Number.isFinite(Number(seo.maxSnippet)))robots.push(`max-snippet:${Number(seo.maxSnippet)}`);
+ if(seo.maxVideoPreview!==undefined&&seo.maxVideoPreview!==null&&seo.maxVideoPreview!==''&&Number.isFinite(Number(seo.maxVideoPreview)))robots.push(`max-video-preview:${Number(seo.maxVideoPreview)}`);
+ if(['none','standard','large'].includes(seo.maxImagePreview))robots.push(`max-image-preview:${seo.maxImagePreview}`);
+ if(seo.robotsNoArchive===true)robots.push('noarchive');
+ if(seo.robotsNoSnippet===true)robots.push('nosnippet');
+ if(seo.robotsNoImageIndex===true)robots.push('noimageindex');
+ const image=safeContentUrl(seo.ogImage||article.coverImage);
+ const imageUrl=image?(image.startsWith('http')?image:SITE_URL+image):`${SITE_URL}/assets/social-card.svg`;
+ const tags=article.tags.map(tag=>`<span class="tag">${esc(tag)}</span>`).join('');
+ const cover=safeContentUrl(article.coverImage)?`<img class="article-cover" src="${esc(article.coverImage)}" alt="${esc(article.coverImageAlt||article.title)}" loading="lazy">`:'';
+ const crumbs=`<nav class="breadcrumbs" aria-label="Хлібні крихти"><a href="/">Головна</a><span class="sep">/</span><a href="/articles/">Статті</a><span class="sep">/</span><span>${esc(article.title)}</span></nav>`;
+ const body=`<main id="main"><section class="article-hero"><div class="container article-shell">${crumbs}<div class="eyebrow">Статті та поради</div><h1>${esc(article.title)}</h1>${article.excerpt?`<p class="article-excerpt">${esc(article.excerpt)}</p>`:''}<div class="article-meta"><span>${esc(article.date||'')}</span>${article.author?`<span>Автор: ${esc(article.author)}</span>`:''}${article.category?`<span>${esc(article.category)}</span>`:''}</div>${cover}${tags?`<div class="article-tags">${tags}</div>`:''}</div></section><section class="section-tight"><div class="container article-shell"><article class="content-card article-body">${renderMarkdown(article.body)}</article><div class="article-back"><a class="text-link" href="/articles/">← До всіх статей</a></div></div></section></main>`;
+ const breadcrumbSchema={'@context':'https://schema.org','@type':'BreadcrumbList','itemListElement':[{'@type':'ListItem','position':1,'name':'Головна','item':SITE_URL+'/'},{'@type':'ListItem','position':2,'name':'Статті','item':SITE_URL+'/articles/'},{'@type':'ListItem','position':3,'name':seo.breadcrumbTitle||article.title,'item':canonicalUrl}]};
+ const schemaEntities=[];
+ if(seo.schemaJson&&String(seo.schemaJson).trim()) {
+  let custom; try{custom=JSON.parse(seo.schemaJson)}catch(error){throw new Error(`Некоректний Schema JSON у статті ${article.slug}: ${error.message}`)}
+  if(!custom||typeof custom!=='object')throw new Error(`Schema JSON у статті ${article.slug} має бути об’єктом або масивом.`);
+  schemaEntities.push(...(Array.isArray(custom)?custom:[custom]));
+ } else if(seo.schemaType!=='None') schemaEntities.push(articleSchema(article,canonicalUrl));
+ schemaEntities.push(breadcrumbSchema);
+ const schema=`<script type="application/ld+json">${json(schemaEntities)}</script>`;
+ return base(title,description,body,{canonicalUrl,active:'articles',robots:robots.join(','),ogTitle:seo.ogTitle||title,ogDescription:seo.ogDescription||description,ogImage:imageUrl,ogUrl:seo.ogUrl||canonicalUrl,ogSiteName:seo.ogSiteName||SITE_BRAND,ogType:seo.ogType||'article',twitterCard:seo.twitterCard||'',twitterTitle:seo.twitterTitle||seo.ogTitle||title,twitterDescription:seo.twitterDescription||seo.ogDescription||description,twitterImage:safeContentUrl(seo.twitterImage)?(seo.twitterImage.startsWith('http')?seo.twitterImage:SITE_URL+seo.twitterImage):imageUrl,twitterSite:seo.twitterSite||'',twitterCreator:seo.twitterCreator||'',keywords:[seo.focusKeyword,...(Array.isArray(seo.additionalKeywords)?seo.additionalKeywords:[]),...(Array.isArray(seo.metaKeywords)?seo.metaKeywords:[])].filter(Boolean),extraHead:schema});
+}
 function card(c){return `<a class="calculator-card" href="${c.url}" data-search-item="${esc([c.title,c.description,...c.keywords].join(' '))}"><span class="card-category">${esc(c.categoryName)}</span><h3>${esc(c.title)}</h3><p>${esc(c.description)}</p><span class="card-arrow">Відкрити калькулятор <span aria-hidden="true">↗</span></span></a>`;}
 function categoryCard(key,c){const count=calculators.filter(x=>x.category===key).length;return `<a class="category-card" href="/category/${key}/"><span class="category-icon" aria-hidden="true">${esc(c.icon)}</span><h3>${esc(c.name)}</h3><p>${esc(c.desc)}</p><small>${count} калькуляторів · Переглянути →</small></a>`;}
 function fieldHTML(f,i){
@@ -126,8 +257,19 @@ function calcPage(c){
  const faq=c.faqs.map((q,i)=>`<div class="faq-item"><h3>${esc(q)}</h3><p>${esc(faqAnswer(c,i))}</p></div>`).join('');
  const form=`<section class="calculator-layout" aria-label="${esc(c.title)}" data-calculator-app data-type="${esc(c.type)}"><div class="calculator-panel"><div class="panel-head"><h2>Введіть дані для розрахунку</h2><span class="badge-soft">Безкоштовно</span></div><form>${`<div class="fields-grid">${c.fields.map(fieldHTML).join('')}</div>`}<div class="form-actions"><button class="button" type="submit">Розрахувати <span aria-hidden="true">→</span></button><span>Результат оновлюється після зміни даних</span></div></form></div><aside class="result-panel"><h2>Ваш результат</h2><div data-result><div class="result-empty"><div class="result-symbol">=</div>Введіть значення, щоб отримати результат.</div></div></aside></section>`;
  const schema=`<script type="application/ld+json">${json(pageSchema(c))}</script>`;
- const intro=`<main id="main"><div class="container page-intro"><nav class="breadcrumbs" aria-label="Хлібні крихти"><a href="/">Головна</a><span class="sep">/</span><a href="/category/${c.category}/">${esc(c.categoryName)}</a><span class="sep">/</span><span>${esc(c.title)}</span></nav><h1>${esc(c.title)}</h1><p>${esc(c.intro)}</p></div>${form}<div class="container"><div class="info-grid"><section class="content-card"><h2>Як користуватися: ${esc(c.title)}</h2><ol>${howToSteps(c).map(s=>`<li>${esc(s)}</li>`).join('')}</ol><h3>Що враховує ${esc(c.title.toLowerCase())}?</h3><p>${esc(c.description)} Калькулятор приймає введені значення та показує результат разом із коротким поясненням.</p></section><section class="content-card"><h2>Формула: ${esc(c.title)}</h2><div class="formula-box">${esc(c.formula)}</div><h3>Приклад розрахунку</h3><p>${esc(c.example)}</p><p>Щоб отримати власний результат, замініть прикладові значення у формі на свої дані. ${esc(c.title)} перерахує підсумок автоматично.</p></section></div><section class="section-tight"><div class="section-heading"><div><h2>Часті запитання про ${esc(c.title.toLowerCase())}</h2><p>Відповіді про формулу, параметри та використання калькулятора.</p></div></div><div class="faq-list">${faq}</div></section>${related.length?`<section class="section-tight"><div class="section-heading"><div><h2>Інші калькулятори в категорії «${esc(c.categoryName)}»</h2><p>Інструменти для суміжних розрахунків.</p></div><a class="text-link" href="/category/${c.category}/">Уся категорія →</a></div><div class="related-grid">${related.map(r=>`<a class="related-link" href="${r.url}"><span>${esc(r.categoryName)}</span>${esc(r.title)}</a>`).join('')}</div></section>`:''}<div class="article-note">Розрахунки виконуються у браузері. Введені значення не надсилаються на сервер цього сайту. ${c.category==='health'?'Результати для здоров’я мають інформаційний характер.':''}</div></div></main>${schema}`;
- const title=c.title+' | Розрахуй';
+ const fieldDetails=c.fields.map(f=>`<li><strong>${esc(f.label)}</strong>${f.unit?` (${esc(f.unit)})`:''} — введіть значення, яке відповідає вашим вихідним даним. ${f.type==='select'?'Оберіть відповідний варіант зі списку.':f.type==='date'?'Перевірте календарну дату перед розрахунком.':'Не змішуйте різні одиниці вимірювання в одному полі.'}</li>`).join('');
+ const categoryGuidance={
+  finance:'Порівнюйте результат із фактичними умовами банку, роботодавця або договору. Комісії, податкові правила та додаткові платежі враховуються лише тоді, коли вони передбачені полями калькулятора.',
+  health:'Показник має довідковий характер. На нього можуть впливати вік, стан здоров’я, звички, фізична активність та інші індивідуальні чинники. Не використовуйте результат як діагноз або персональне призначення.',
+  math:'Зверніть увагу на порядок дій, знаки, точність введення та округлення. Для перевірки корисно повторити обчислення вручну або скористатися іншим способом.',
+  dates:'Перевірте початкову й кінцеву дати та домовленість щодо включення першого і останнього дня. Для юридичних строків окремо перевіряйте норми, які застосовуються до конкретного випадку.',
+  build:'Для матеріалів враховуйте фактичну геометрію, прорізи, нерівності поверхонь і технологічні втрати. Запас та ціни вводьте відповідно до вашого об’єкта й пропозицій постачальника.',
+  auto:'Фактичні витрати залежать від маршруту, навантаження, швидкості руху, температури, технічного стану транспортного засобу та цін на пальне чи електроенергію.',
+  convert:'Почніть із вибору вихідної та цільової одиниці. Перевірте, чи належать одиниці до однієї системи вимірювання та чи не потрібне спеціальне перетворення, наприклад для температури.',
+  everyday:'Для коректного результату використовуйте повні та актуальні значення. Якщо предмети, платежі або порції мають різну вагу, перевірте, чи підходить звичайне середнє або пропорційний розрахунок.'
+ };
+ const intro=`<main id="main"><div class="container page-intro"><nav class="breadcrumbs" aria-label="Хлібні крихти"><a href="/">Головна</a><span class="sep">/</span><a href="/category/${c.category}/">${esc(c.categoryName)}</a><span class="sep">/</span><span>${esc(c.title)}</span></nav><h1>${esc(c.title)}</h1><p>${esc(c.intro)}</p></div>${form}<div class="container"><section class="content-card article-copy calculator-guide"><h2>Про ${esc(c.title.toLowerCase())}</h2><p>${esc(c.description)} Цей ${esc(c.title.toLowerCase())} допомагає отримати числову оцінку за параметрами, які ви вводите у форму. Використовуйте його, коли потрібно швидко перевірити варіант, порівняти кілька сценаріїв або підготувати вихідні дані для подальшого рішення.</p><p>Запит «${esc(c.primaryKeyword)}» охоплює потребу, для якої створено цей інструмент. Щоб отримати корисний результат, вкажіть реальні значення, перевірте одиниці вимірювання та врахуйте обмеження, наведені нижче. ${esc(c.title)} працює у браузері, а введені значення не надсилаються на сервер сайту.</p><h3>Які дані потрібні</h3><ul>${fieldDetails}</ul><p>${esc(categoryGuidance[c.category]||'Перевірте введені дані перед використанням результату.')}</p><h3>Як користуватися калькулятором</h3><ol>${howToSteps(c).map(step=>`<li>${esc(step)}</li>`).join('')}</ol><h3>Як уникнути помилок</h3><p>Найчастіша причина неточного результату — невідповідні одиниці, пропущене поле або значення, яке не відповідає вашому випадку. Перевірте цифри, десяткові роздільники, відсоткові ставки та дати. Якщо розрахунок залежить від тарифу, ставки, договору чи нормативу, введіть актуальне значення самостійно. Для складних випадків порівняйте результат із документами або незалежним розрахунком.</p></section><div class="info-grid section-tight"><section class="content-card"><h2>Формула: ${esc(c.title)}</h2><div class="formula-box">${esc(c.formula)}</div><h3>Приклад розрахунку</h3><p>${esc(c.example)}</p><p>Приклад показує принцип роботи формули, а не універсальну відповідь для кожної ситуації. Замініть початкові значення на власні, щоб отримати індивідуальну оцінку в блоці результату.</p></section><section class="content-card"><h2>Що означає результат</h2><p>Підсумок формується з параметрів, які ви вказали. Перегляньте не лише головне число, а й додаткові показники та пояснення під ним. Вони допомагають зрозуміти, які частини розрахунку вплинули на кінцеве значення.</p><p>Якщо ви змінюєте один параметр, інші залишайте незмінними. Так простіше побачити, як саме цей фактор впливає на результат ${esc(c.title.toLowerCase())}.</p><p>Для швидкої перевірки повторіть розрахунок з іншими вихідними даними або звірте формулу з прикладом на цій сторінці.</p></section></div><section class="section-tight"><div class="section-heading"><div><h2>Часті запитання про ${esc(c.title.toLowerCase())}</h2><p>Відповіді про формулу, вхідні параметри та точність результату.</p></div></div><div class="faq-list">${faq}</div></section>${related.length?`<section class="section-tight"><div class="section-heading"><div><h2>Інші калькулятори в категорії «${esc(c.categoryName)}»</h2><p>Суміжні інструменти для пов’язаних розрахунків.</p></div><a class="text-link" href="/category/${c.category}/">Уся категорія →</a></div><div class="related-grid">${related.map(r=>`<a class="related-link" href="${r.url}"><span>${esc(r.categoryName)}</span>${esc(r.title)}</a>`).join('')}</div></section>`:''}<div class="article-note">Розрахунки виконуються у браузері. Введені значення не надсилаються на сервер цього сайту. ${c.category==='health'?'Результати для здоров’я мають інформаційний характер і не замінюють консультацію медичного фахівця.':''}</div></div></main>${schema}`;
+ const title=c.metaTitle||`${c.title} | Agro Calculator`;
  return base(title,c.metaDescription,intro,{canonical:c.url,keywords:c.keywords});
 }
 
@@ -142,7 +284,7 @@ for(const c of calculators){
 for(const [key,cat] of Object.entries(categories)){
  const list=calculators.filter(c=>c.category===key);
  const cards=list.map(card).join('');
- const title=`${cat.name}: онлайн-калькулятори українською | Розрахуй`;
+ const title=`${cat.name}: онлайн-калькулятори українською | Agro Calculator`;
  const desc=`${cat.desc} ${list.length} безкоштовних онлайн-калькуляторів українською.`;
  const page=`<main id="main"><section class="category-hero"><div class="container"><nav class="breadcrumbs"><a href="/">Головна</a><span class="sep">/</span><span>${esc(cat.name)}</span></nav><div class="eyebrow">Категорія калькуляторів</div><h1>${esc(cat.name)} — онлайн-калькулятори</h1><p>${esc(cat.desc)} Оберіть інструмент, введіть параметри й отримайте результат без реєстрації.</p><div class="category-stat"><span aria-hidden="true">${esc(cat.icon)}</span>${list.length} калькуляторів у категорії</div></div></section><section class="section"><div class="container"><div class="section-heading"><div><h2>Усі калькулятори: ${esc(cat.name.toLowerCase())}</h2><p>Кожен інструмент має власну формулу, інструкцію та відповіді на часті запитання.</p></div></div><div class="calculator-grid">${cards}</div><div class="article-copy" style="margin-top:32px"><h2>Як обрати ${esc(cat.name.toLowerCase())}?</h2><p>${esc(cat.desc)} Перед розрахунком перевірте, що введені значення відповідають потрібним одиницям вимірювання та періоду. Якщо результат залежить від тарифу, ставки або умов договору, використовуйте актуальні дані.</p><p>Усі калькулятори на сайті працюють українською мовою. Розрахунок відбувається у браузері, без створення облікового запису.</p></div></div></section></main>`;
  writePage(`/category/${key}/`,base(title,desc,page,{canonical:`/category/${key}/`,active:key==='finance'?'finance':''}));
@@ -150,29 +292,38 @@ for(const [key,cat] of Object.entries(categories)){
 
 // All calculators directory
 const allPage=`<main id="main"><section class="category-hero"><div class="container"><nav class="breadcrumbs"><a href="/">Головна</a><span class="sep">/</span><span>Усі калькулятори</span></nav><div class="eyebrow">Каталог інструментів</div><h1>Усі онлайн-калькулятори українською</h1><p>Знайдіть потрібний розрахунок за назвою або ключовим словом. У каталозі є фінансові, математичні, медичні довідкові, будівельні та побутові калькулятори.</p><div class="category-stat">100 безкоштовних калькуляторів · Без реєстрації</div></div></section><section class="section"><div class="container"><div class="search-box" style="max-width:none;border:1px solid var(--line);box-shadow:none;margin-bottom:24px"><span class="search-icon" aria-hidden="true">⌕</span><input data-search type="search" placeholder="Наприклад: ІМТ, зарплата, відсотки, ремонт…" aria-label="Пошук калькулятора"><span class="badge-soft">Пошук по каталогу</span></div>${Object.entries(categories).map(([key,cat])=>`<section class="section-tight"><div class="section-heading"><div><h2>${esc(cat.name)}</h2><p>${esc(cat.desc)}</p></div><a class="text-link" href="/category/${key}/">Усі в категорії →</a></div><div class="calculator-grid">${calculators.filter(c=>c.category===key).map(card).join('')}</div></section>`).join('')}<div class="empty-state" data-search-empty hidden>За цим запитом калькуляторів не знайдено. Спробуйте інше слово.</div></div></section></main>`;
-writePage('/calculators/',base('Усі 100 онлайн-калькуляторів українською | Розрахуй','Каталог 100 безкоштовних онлайн-калькуляторів українською: фінанси, здоров’я, математика, дати, будівництво, авто та конвертери.',allPage,{canonical:'/calculators/',active:'all'}));
+writePage('/calculators/',base('Усі 100 онлайн-калькуляторів українською | Agro Calculator','Каталог 100 безкоштовних онлайн-калькуляторів українською: фінанси, здоров’я, математика, дати, будівництво, авто та конвертери.',allPage,{canonical:'/calculators/',active:'all'}));
 
-// Homepage
-const featuredSlugs=['kalkulyator-imt','kalkulyator-viku','kalkulyator-zarplaty','kalkulyator-vidsotkiv','kredytnyi-kalkulyator','kalkulyator-kalorii','kalkulyator-znyzhky','dni-mizh-datamy','kalkulyator-vytrat-palyva','kalkulyator-betonu','konverter-valyut','kalkulyator-vartosti-remontu'];
+// Homepage: categories first, then a short list of priority tools.
+const featuredSlugs=['kalkulyator-zarplaty','kredytnyi-kalkulyator','kalkulyator-imt','kalkulyator-vidsotkiv','kalkulyator-kalorii','kalkulyator-vartosti-remontu','kalkulyator-vytrat-palyva','dni-mizh-datamy'];
 const featured=featuredSlugs.map(s=>calculators.find(c=>c.slug===s)).filter(Boolean);
-const home=`<main id="main"><section class="hero"><div class="container hero-inner"><div class="eyebrow">Онлайн-інструменти для щоденних рішень</div><h1>Порахуйте потрібне.<br>Без зайвих складнощів.</h1><p>Безкоштовні онлайн-калькулятори українською — від зарплати й кредиту до ІМТ, ремонту та витрат на авто.</p><div class="search-box"><span class="search-icon" aria-hidden="true">⌕</span><input type="search" data-search placeholder="Що потрібно порахувати? Наприклад, ІМТ або зарплату" aria-label="Пошук серед калькуляторів"><a class="button" href="/calculators/">Знайти <span aria-hidden="true">→</span></a></div><div class="hero-meta"><span>✓ 100 калькуляторів</span><span>✓ Без реєстрації</span><span>✓ Розрахунок у браузері</span></div></div></section><section class="section"><div class="container"><div class="section-heading"><div><h2>Оберіть категорію</h2><p>Інструменти згруповані за темами, щоб потрібний розрахунок було легко знайти.</p></div><a class="text-link" href="/calculators/">Усі 100 калькуляторів →</a></div><div class="category-grid">${Object.entries(categories).map(([key,c])=>categoryCard(key,c)).join('')}</div></div></section><section class="section-tight"><div class="container"><div class="section-heading"><div><h2>Часто потрібні калькулятори</h2><p>Швидкий доступ до розрахунків для повсякденних задач.</p></div></div><div class="calculator-grid">${featured.map(card).join('')}</div></div></section><section class="section"><div class="container"><div class="soft-panel"><h2>Розрахунки українською, з поясненнями</h2><p>Кожна сторінка містить окремий калькулятор, формулу, приклад, інструкцію та відповіді на часті запитання. Введені значення обробляються у вашому браузері.</p><div style="margin-top:18px"><a class="button" href="/calculators/">Переглянути всі калькулятори <span aria-hidden="true">→</span></a></div></div></div></section><section class="section-tight"><div class="container"><div class="section-heading"><div><h2>Знайти калькулятор за назвою</h2><p>Пошук охоплює всі інструменти каталогу.</p></div></div><div class="calculator-grid">${calculators.map(card).join('')}</div><div class="empty-state" data-search-empty hidden>За цим запитом нічого не знайдено. Спробуйте іншу назву або відкрийте категорії вище.</div></div></section></main>`;
-writePage('/',base('Розрахуй — 100 безкоштовних онлайн-калькуляторів українською','Онлайн-калькулятори українською: ІМТ, вік, зарплата на руки, кредит, відсотки, калорії, ремонт, пальне, конвертери та інші розрахунки.',home,{canonical:'/',keywords:['калькулятор онлайн','онлайн калькулятори українською','безкоштовний калькулятор','калькулятор ІМТ','калькулятор віку','калькулятор зарплати','калькулятор кредиту']}));
+const home=`<main id="main"><section class="hero"><div class="container hero-inner"><div class="eyebrow">Онлайн-інструменти для щоденних рішень</div><h1>Agro Calculator — точні розрахунки українською</h1><p>Безкоштовні онлайн-калькулятори для фінансів, здоров’я, математики, ремонту, авто та повсякденних задач. Оберіть категорію або знайдіть потрібний інструмент.</p><form class="search-box" action="/calculators/" method="get"><span class="search-icon" aria-hidden="true">⌕</span><input type="search" name="q" placeholder="Що потрібно порахувати? Наприклад, ІМТ або зарплату" aria-label="Пошук серед калькуляторів"><button class="button" type="submit">Знайти <span aria-hidden="true">→</span></button></form><div class="hero-meta"><span>✓ 100 калькуляторів</span><span>✓ Без реєстрації</span><span>✓ Розрахунок у браузері</span></div></div></section><section class="section"><div class="container"><div class="section-heading"><div><h2>Категорії калькуляторів</h2><p>Усі інструменти згруповані за темами. Відкрийте категорію, щоб переглянути повний список.</p></div><a class="text-link" href="/calculators/">Усі 100 калькуляторів →</a></div><div class="category-grid">${Object.entries(categories).map(([key,c])=>categoryCard(key,c)).join('')}</div></div></section><section class="section-tight"><div class="container"><div class="section-heading"><div><h2>Популярні калькулятори</h2><p>Кілька інструментів для найпоширеніших розрахунків.</p></div></div><div class="calculator-grid">${featured.map(card).join('')}</div><p class="catalog-more"><a class="text-link" href="/calculators/">Переглянути весь каталог калькуляторів →</a></p></div></section><section class="section"><div class="container"><div class="soft-panel"><h2>Розрахунки з поясненнями</h2><p>Кожна сторінка калькулятора містить інструкцію, формулу, приклад використання та відповіді на часті запитання. Якщо потрібна додаткова інформація, перегляньте статті та поради.</p><div class="home-actions"><a class="button" href="/calculators/">Усі калькулятори <span aria-hidden="true">→</span></a><a class="button button-secondary" href="/articles/">Читати статті</a></div></div></div></section></main>`;
+writePage('/',base('Agro Calculator — безкоштовні онлайн-калькулятори українською','Agro Calculator — 100 безкоштовних онлайн-калькуляторів українською: фінанси, здоров’я, математика, дати, будівництво, авто та конвертери.',home,{canonical:'/',keywords:['Agro Calculator','калькулятори онлайн українською','безкоштовний онлайн калькулятор','калькулятор зарплати','кредитний калькулятор','калькулятор ІМТ']}));
 
 // About and privacy
-const about=`<main id="main"><section class="about-hero"><div class="container"><nav class="breadcrumbs"><a href="/">Головна</a><span class="sep">/</span><span>Про сайт</span></nav><div class="eyebrow" style="color:var(--green)">Про проєкт</div><h1>Про «Розрахуй»</h1><p>«Розрахуй» — незалежний сайт безкоштовних онлайн-калькуляторів українською мовою. Його мета — допомагати швидко виконувати зрозумілі побутові, фінансові, математичні та інші розрахунки.</p></div></section><section class="section-tight"><div class="container"><div class="info-grid"><section class="content-card"><h2>Як усе працює</h2><p>Кожен калькулятор має власні поля, формулу та приклад. Ви вводите значення й одразу отримуєте результат у браузері. Реєстрація не потрібна.</p><p>На сторінках наведено пояснення, щоб можна було перевірити логіку розрахунку й зрозуміти, які дані впливають на результат.</p></section><section class="content-card"><h2>Хто підтримує сайт</h2><p>Сайт створює та підтримує одна людина. Це незалежний проєкт із самостійною розробкою, перевіркою розрахунків і поступовим розширенням каталогу.</p><p>Знайдені помилки та неточності враховуються під час оновлення інструментів.</p></section><section class="content-card"><h2>Точність і межі розрахунків</h2><p>Результат залежить від введених даних і формули, зазначеної на відповідній сторінці. Для тарифів, податків, ставок, нормативів і договорів потрібно перевіряти актуальні умови.</p><p>Калькулятори здоров’я мають довідковий характер і не замінюють консультацію медичного фахівця.</p></section><section class="content-card"><h2>Приватність</h2><p>Обчислення виконуються у браузері. Значення, які ви вводите у форми калькуляторів, не надсилаються на сервер сайту.</p><p>Для роботи сторінок не потрібен обліковий запис.</p></section></div></div></section></main>`;
-writePage('/about/',base('Про сайт Розрахуй — українські онлайн-калькулятори','Дізнайтеся про незалежний проєкт «Розрахуй», його калькулятори українською, принципи роботи та підхід до приватності.',about,{canonical:'/about/',active:'about'}));
+const about=`<main id="main"><section class="about-hero"><div class="container"><nav class="breadcrumbs"><a href="/">Головна</a><span class="sep">/</span><span>Про сайт</span></nav><div class="eyebrow" style="color:var(--green)">Про проєкт</div><h1>Про Agro Calculator</h1><p>Agro Calculator — незалежний сайт безкоштовних онлайн-калькуляторів українською мовою. Його мета — допомагати швидко виконувати зрозумілі побутові, фінансові, математичні та інші розрахунки.</p></div></section><section class="section-tight"><div class="container"><div class="info-grid"><section class="content-card"><h2>Як усе працює</h2><p>Кожен калькулятор має власні поля, формулу та приклад. Ви вводите значення й одразу отримуєте результат у браузері. Реєстрація не потрібна.</p><p>На сторінках наведено пояснення, щоб можна було перевірити логіку розрахунку й зрозуміти, які дані впливають на результат.</p></section><section class="content-card"><h2>Як підготовлено інструменти</h2><p>На кожній сторінці є опис призначення калькулятора, перелік вхідних параметрів, формула або логіка обчислення та приклад.</p><p>Перед використанням результату перевіряйте вихідні дані й умови, які не представлені окремими полями.</p></section><section class="content-card"><h2>Точність і межі розрахунків</h2><p>Результат залежить від введених даних і формули, зазначеної на відповідній сторінці. Для тарифів, податків, ставок, нормативів і договорів потрібно перевіряти актуальні умови.</p><p>Калькулятори здоров’я мають довідковий характер і не замінюють консультацію медичного фахівця.</p></section><section class="content-card"><h2>Приватність</h2><p>Обчислення виконуються у браузері. Значення, які ви вводите у форми калькуляторів, не надсилаються на сервер сайту.</p><p>Для роботи сторінок не потрібен обліковий запис.</p></section></div></div></section></main>`;
+writePage('/about/',base('Про сайт Agro Calculator — українські онлайн-калькулятори','Дізнайтеся про незалежний проєкт Agro Calculator, його калькулятори українською, принципи роботи та підхід до приватності.',about,{canonical:'/about/',active:'about'}));
 const privacy=`<main id="main"><section class="about-hero"><div class="container"><nav class="breadcrumbs"><a href="/">Головна</a><span class="sep">/</span><span>Конфіденційність</span></nav><div class="eyebrow" style="color:var(--green)">Конфіденційність</div><h1>Як працюють ваші дані</h1><p>Калькулятори виконують обчислення безпосередньо у браузері й не надсилають введені значення на сервер сайту.</p></div></section><section class="section-tight"><div class="container"><article class="content-card article-copy"><h2>Дані у формах калькуляторів</h2><p>Значення, які ви вводите у поля калькуляторів, використовуються браузером для виконання розрахунку. Сайт не має облікових записів і не потребує реєстрації.</p><h2>Технічні дані</h2><p>Хостинг може обробляти стандартні технічні журнали запитів для доставки сторінок і захисту інфраструктури. У цій версії сайту не підключено сторонні рекламні або аналітичні скрипти.</p><h2>Зовнішні посилання</h2><p>Якщо сторінка посилається на зовнішній ресурс, його правила конфіденційності діють окремо.</p><h2>Оновлення</h2><p>Описані принципи відповідають поточній реалізації сайту. Якщо технічна робота сайту зміниться, цю сторінку буде оновлено.</p></article></div></section></main>`;
-writePage('/privacy/',base('Конфіденційність — Розрахуй','Як сайт «Розрахуй» обробляє значення, введені в онлайн-калькулятори, технічні дані та зовнішні посилання.',privacy));
+writePage('/privacy/',base('Конфіденційність — Agro Calculator','Як сайт Agro Calculator обробляє значення, введені в онлайн-калькулятори, технічні дані та зовнішні посилання.',privacy));
 
-// Static files and optional sitemap
-writePage('/404.html',base('Сторінку не знайдено | Розрахуй','Такої сторінки немає. Перейдіть до каталогу онлайн-калькуляторів українською.',`<main id="main"><div class="container not-found"><div class="eyebrow" style="color:var(--green)">Помилка 404</div><h1>Сторінку не знайдено</h1><p class="muted">Можливо, адресу змінено або сторінку видалено.</p><a class="button" href="/calculators/">Переглянути калькулятори →</a></div></main>`));
-fs.writeFileSync(path.join(dist,'robots.txt'),'User-agent: *\nAllow: /\n');
-fs.writeFileSync(path.join(dist,'manifest.webmanifest'),JSON.stringify({name:'Розрахуй — онлайн-калькулятори українською',short_name:'Розрахуй',lang:'uk',start_url:'/',display:'standalone',background_color:'#f5f8f5',theme_color:'#176b54',icons:[{src:'/assets/favicon.svg',sizes:'any',type:'image/svg+xml'}]},null,2));
-if(SITE_URL){
- const urls=['/', '/calculators/', '/about/', '/privacy/',...Object.keys(categories).map(k=>`/category/${k}/`),...calculators.map(c=>c.url)];
- const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.map(u=>`<url><loc>${SITE_URL}${u}</loc></url>`).join('')}</urlset>`;
- fs.writeFileSync(path.join(dist,'sitemap.xml'),xml);
- fs.appendFileSync(path.join(dist,'robots.txt'),`Sitemap: ${SITE_URL}/sitemap.xml\n`);
-}
-console.log(`Built ${calculators.length} calculator pages, ${Object.keys(categories).length} category pages and supporting pages.`);
-console.log(SITE_URL?'Sitemap generated.':'No SITE_URL provided; sitemap will be generated when SITE_URL is set.');
+// Articles collection (content is managed in Git through Pages CMS).
+const articles=readArticles();
+const articleCards=articles.map(article=>`<a class="article-card" href="${article.url}"><span class="article-card-date">${esc(article.date||'')}</span><h2>${esc(article.title)}</h2><p>${esc(article.excerpt||'')}</p><span class="article-card-link">Читати статтю →</span></a>`).join('');
+const articlesPage=`<main id="main"><section class="category-hero"><div class="container"><nav class="breadcrumbs"><a href="/">Головна</a><span class="sep">/</span><span>Статті</span></nav><div class="eyebrow">База знань Agro Calculator</div><h1>Статті та практичні поради</h1><p>Пояснення формул, поради щодо розрахунків і матеріали про повсякденне використання онлайн-калькуляторів.</p><div class="category-stat">${articles.length} опублікованих матеріалів</div><p class="article-editor-link"><a class="text-link" href="/admin/">Керування статтями та SEO →</a></p></div></section><section class="section"><div class="container">${articles.length?`<div class="article-list-grid">${articleCards}</div>`:`<div class="content-card article-copy"><h2>Поки немає опублікованих статей</h2><p>Чернетки можна редагувати в редакційній панелі. Опубліковані матеріали з’являться тут.</p></div>`}</div></section></main>`;
+writePage('/articles/',base('Статті та поради | Agro Calculator','Практичні статті українською про формули, фінансові, побутові та інші розрахунки з онлайн-калькуляторами Agro Calculator.',articlesPage,{canonical:'/articles/',active:'articles'}));
+for(const article of articles)writePage(article.url,renderArticle(article));
+
+const adminPage=`<main id="main"><section class="about-hero"><div class="container"><nav class="breadcrumbs"><a href="/">Головна</a><span class="sep">/</span><span>Керування контентом</span></nav><div class="eyebrow" style="color:var(--green)">Редакційна панель</div><h1>Керування статтями та SEO</h1><p>Створюйте та редагуйте статті в Pages CMS. Після збереження змін сайт автоматично оновлює опублікований вміст.</p><div class="home-actions"><a class="button" href="https://app.pagescms.org/" target="_blank" rel="noopener noreferrer">Відкрити Pages CMS ↗</a><a class="button button-secondary" href="/articles/">Переглянути статті</a></div></div></section><section class="section-tight"><div class="container"><div class="info-grid"><section class="content-card"><h2>Як почати</h2><ol><li>Увійдіть у Pages CMS та відкрийте проєкт Agro Calculator.</li><li>Відкрийте колекцію «Статті» у редакторі контенту.</li><li>Натисніть створення нового матеріалу.</li><li>Заповніть назву, URL, текст, дату й SEO-поля.</li><li>Для чернетки вимкніть «Опубліковано». Для публікації увімкніть перемикач і збережіть зміни.</li></ol></section><section class="content-card"><h2>Поля SEO</h2><p>CMS містить окремі поля для SEO-заголовка, meta description, основного та додаткових ключових слів, canonical URL, індексації, follow/no-follow, robots preview, назви для breadcrumbs, типу Schema, Open Graph і Twitter. Доступні також дата, автор, рубрика, теги, зображення та alt-текст.</p></section></div><div class="article-note">Доступ до редактора налаштовується в обліковому записі Pages CMS. Ця сторінка не містить паролів або токенів.</div></div></section></main>`;
+writePage('/admin/',base('Керування контентом і SEO | Agro Calculator','Редакційна панель Agro Calculator: створення статей, керування публікаціями та SEO-метаданими через Pages CMS.',adminPage,{canonical:'/admin/',robots:'noindex,nofollow'}));
+
+
+// Static assets, manifest, robots.txt and XML sitemap.
+writePage('/404.html',base('Сторінку не знайдено | Agro Calculator','Такої сторінки немає. Перейдіть до каталогу онлайн-калькуляторів українською.',`<main id="main"><div class="container not-found"><div class="eyebrow" style="color:var(--green)">Помилка 404</div><h1>Сторінку не знайдено</h1><p class="muted">Можливо, адресу змінено або сторінку видалено.</p><a class="button" href="/calculators/">Переглянути калькулятори →</a></div></main>`));
+fs.writeFileSync(path.join(dist,'manifest.webmanifest'),JSON.stringify({name:'Agro Calculator — онлайн-калькулятори українською',short_name:'Agro Calc',lang:'uk',start_url:'/',display:'standalone',background_color:'#f5f8f5',theme_color:'#176b54',icons:[{src:'/assets/favicon.svg',sizes:'any',type:'image/svg+xml'}]},null,2));
+const sitemapArticles=articles.filter(article=>article.seo.robotsIndex!==false&&(!article.seo.canonicalUrl||article.seo.canonicalUrl===SITE_URL+article.url));
+const sitemapUrls=['/','/calculators/','/articles/','/about/','/privacy/',...Object.keys(categories).map(k=>`/category/${k}/`),...calculators.map(c=>c.url),...sitemapArticles.map(a=>a.url)];
+const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${sitemapUrls.map(url=>`<url><loc>${esc(SITE_URL+url)}</loc></url>`).join('')}</urlset>`;
+fs.writeFileSync(path.join(dist,'sitemap.xml'),xml,'utf8');
+fs.writeFileSync(path.join(dist,'robots.txt'),`User-agent: *\nAllow: /\n\nSitemap: ${SITE_URL}/sitemap.xml\n`,'utf8');
+console.log(`Built ${calculators.length} calculator pages, ${Object.keys(categories).length} category pages, ${articles.length} articles and supporting pages.`);
+console.log(`Sitemap generated at ${SITE_URL}/sitemap.xml.`);

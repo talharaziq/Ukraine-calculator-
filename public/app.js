@@ -213,11 +213,15 @@
   function initSearch(){
     const input=$('[data-search]'); if(!input)return;
     const items=$$('[data-search-item]'); const empty=$('[data-search-empty]');
-    input.addEventListener('input',()=>{
+    const params=new URLSearchParams(window.location.search);
+    const initial=params.get('q'); if(initial){input.value=initial;}
+    const filter=()=>{
       const q=input.value.trim().toLocaleLowerCase('uk');let shown=0;
       items.forEach(el=>{const hit=!q||el.dataset.searchItem.toLocaleLowerCase('uk').includes(q);el.hidden=!hit;if(hit)shown++;});
       if(empty)empty.hidden=shown>0;
-    });
+    };
+    input.addEventListener('input',filter);
+    if(items.length)filter();
   }
   function initMobileMenu(){const b=$('[data-menu-toggle]'),n=$('[data-main-nav]');if(b&&n)b.addEventListener('click',()=>{const open=n.classList.toggle('is-open');b.setAttribute('aria-expanded',String(open));});}
   function initYear(){const y=$('[data-year]');if(y)y.textContent=new Date().getFullYear();}

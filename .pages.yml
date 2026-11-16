@@ -1,0 +1,192 @@
+media:
+  - name: article_images
+    label: Зображення статей
+    input: public/articles
+    output: /assets/articles
+    extensions: [jpg, jpeg, png, webp, avif]
+    categories: [image]
+    rename: safe
+content:
+  - name: articles
+    label: Статті
+    type: collection
+    path: content/articles
+    filename: "{slug}.md"
+    format: yaml-frontmatter
+    view:
+      fields: [title, published, date, category]
+      primary: title
+      sort: [date, title]
+      default:
+        sort: date
+        order: desc
+    fields:
+      - name: slug
+        label: URL (латиницею)
+        type: string
+        required: true
+        pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        description: Коротка адреса статті без домену та слешів.
+      - name: title
+        label: Заголовок статті
+        type: string
+        required: true
+      - name: excerpt
+        label: Короткий опис
+        type: text
+        required: true
+      - name: date
+        label: Дата публікації
+        type: date
+        required: true
+      - name: updatedAt
+        label: Дата оновлення
+        type: date
+      - name: published
+        label: Опубліковано
+        type: boolean
+      - name: author
+        label: Автор
+        type: string
+      - name: category
+        label: Рубрика
+        type: select
+        options:
+          values: [Фінанси, Здоров’я, Математика, Будівництво, Авто, Побут, Поради]
+      - name: tags
+        label: Теги
+        type: string
+        list: true
+      - name: coverImage
+        label: Обкладинка
+        type: image
+        options:
+          media: article_images
+      - name: coverImageAlt
+        label: Alt-текст обкладинки
+        type: string
+      - name: body
+        label: Текст статті
+        type: rich-text
+        required: true
+        options:
+          format: markdown
+          media: article_images
+          path: public/articles
+          rename: safe
+          switcher: true
+      - name: seo
+        label: SEO — налаштування пошукової оптимізації
+        type: object
+        fields:
+          - name: title
+            label: SEO Title
+            type: string
+            description: Заголовок для пошукової видачі. Орієнтир — до 60 символів.
+          - name: description
+            label: Meta Description
+            type: text
+            description: Опис сторінки для пошукової видачі. Орієнтир — 140–160 символів.
+          - name: focusKeyword
+            label: Focus Keyword
+            type: string
+          - name: additionalKeywords
+            label: Додаткові ключові слова
+            type: string
+            list: true
+          - name: canonicalUrl
+            label: Canonical URL
+            type: string
+          - name: robotsIndex
+            label: Index (дозволити індексацію)
+            type: boolean
+          - name: robotsFollow
+            label: Follow (дозволити перехід за посиланнями)
+            type: boolean
+          - name: robotsNoArchive
+            label: Noarchive
+            type: boolean
+          - name: robotsNoSnippet
+            label: Nosnippet
+            type: boolean
+          - name: robotsNoImageIndex
+            label: Noimageindex
+            type: boolean
+          - name: maxSnippet
+            label: Max snippet
+            type: number
+            description: -1 — без обмеження; 0 — не показувати фрагмент.
+          - name: maxVideoPreview
+            label: Max video preview (секунди)
+            type: number
+          - name: maxImagePreview
+            label: Max image preview
+            type: select
+            options:
+              values: [none, standard, large]
+          - name: breadcrumbTitle
+            label: Назва для breadcrumbs
+            type: string
+          - name: schemaType
+            label: Тип Schema.org
+            type: select
+            options:
+              values: [Article, BlogPosting, NewsArticle, HowTo, FAQPage, None]
+          - name: ogTitle
+            label: Facebook / Open Graph Title
+            type: string
+          - name: ogDescription
+            label: Facebook / Open Graph Description
+            type: text
+          - name: ogUrl
+            label: Open Graph URL
+            type: string
+          - name: ogType
+            label: Open Graph Type
+            type: select
+            options:
+              values: [article, website]
+          - name: ogSiteName
+            label: Open Graph Site Name
+            type: string
+          - name: ogLocale
+            label: Open Graph Locale
+            type: string
+          - name: ogImage
+            label: Open Graph Image
+            type: image
+            options:
+              media: article_images
+          - name: twitterCard
+            label: X / Twitter Card
+            type: select
+            options:
+              values: [summary, summary_large_image]
+          - name: twitterTitle
+            label: X / Twitter Title
+            type: string
+          - name: twitterDescription
+            label: X / Twitter Description
+            type: text
+          - name: twitterImage
+            label: X / Twitter Image
+            type: image
+            options:
+              media: article_images
+          - name: twitterSite
+            label: X / Twitter Site (@site)
+            type: string
+          - name: twitterCreator
+            label: X / Twitter Creator (@author)
+            type: string
+          - name: schemaJson
+            label: Custom Schema.org JSON-LD
+            type: text
+            description: Необов’язковий JSON-LD. Заповнюйте лише валідним JSON.
+          - name: metaKeywords
+            label: Meta Keywords
+            type: string
+            list: true
+          - name: isPillar
+            label: Pillar Content
+            type: boolean

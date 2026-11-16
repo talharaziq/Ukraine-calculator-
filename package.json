@@ -1,11 +1,13 @@
 {
-  "name": "rozrakhuy-ukrainian-calculators",
-  "version": "1.0.0",
+  "name": "agro-calculator-ukrainian",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
-    "serve": "node serve.mjs"
+    "serve": "node serve.mjs",
+    "check": "node --check build.mjs && node --check public/app.js && node --check serve.mjs",
+    "test": "npm run check && node scripts/validate-build.mjs"
   },
   "engines": {
     "node": ">=22"
